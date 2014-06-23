@@ -10,40 +10,29 @@ import java.util.Timer;
 import net.jp.keys.sunohara.labmoney.DataBase.DBManager;
 import net.jp.keys.sunohara.labmoney.Fragments.SelectFragment;
 import net.jp.keys.sunohara.labmoney.mail.SendMailTimerTask;
-import net.jp.keys.sunohara.labmoney.utils.myFilter;
+import net.jp.keys.sunohara.labmoney.utils.myDialog;
+import net.jp.keys.sunohara.labmoney.utils.myDialog.OnClickDialogButtonListener;
 import android.app.Activity;
-import android.app.AlertDialog;
 import android.app.FragmentManager;
 import android.app.FragmentTransaction;
-import android.content.DialogInterface;
-import android.content.DialogInterface.OnClickListener;
 import android.content.Intent;
 import android.database.Cursor;
-import android.graphics.Color;
 import android.nfc.NfcAdapter;
 import android.os.Bundle;
-import android.text.InputFilter;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
-import android.widget.EditText;
-import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
-import android.widget.TextView;
-import android.widget.TextView.OnEditorActionListener;
 
-public class MainActivity extends Activity implements OnClickListener, OnEditorActionListener {
-    private static final String mailFilter = "([a-zA-Z0-9][a-zA-Z0-9_.+\\-]*)@(([a-zA-Z0-9][a-zA-Z0-9_\\-]+\\.)+[a-zA-Z]{2,6})";
+public class MainActivity extends Activity implements OnClickDialogButtonListener {
     private String uID;
     private String DBuID;
     private String mUserName;
     private DBManager mDbManager;
-    private EditText nameEditText;
-    private EditText mailEditText;
     private Timer mTimer;
     private SendMailTimerTask sendMailTimerTask;
-    private AlertDialog mAlertDialog;
-    private TextView warnTextView;
+    private myDialog mDialog;
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,6 +40,8 @@ public class MainActivity extends Activity implements OnClickListener, OnEditorA
         setContentView(R.layout.activity_main);
 
         mDbManager = new DBManager(getApplicationContext());
+        mDialog = new myDialog(this);
+
         /** NFCの読み込み部分 */
         NFCInit();
         // mTimer = new Timer();
@@ -65,9 +56,8 @@ public class MainActivity extends Activity implements OnClickListener, OnEditorA
         mUserName = checkID();
         /** 未登録の場合 */
         if (mUserName.equals("")) {
-            mAlertDialog = DialogInit();
-            mAlertDialog.show();
-            mAlertDialog.getButton(DialogInterface.BUTTON_POSITIVE).setEnabled(false);
+            mDialog.showDialog();
+            mDialog.setPositiveButtonEnabled(false);
         } else {
             /** 登録済みの場合 */
             FragmentInit(mUserName);
@@ -119,41 +109,6 @@ public class MainActivity extends Activity implements OnClickListener, OnEditorA
         return userName;
     }
 
-    private AlertDialog DialogInit() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        AlertDialog alertDialog = builder.create();
-        LinearLayout dialogLayout = new LinearLayout(this);
-        LinearLayout.LayoutParams templateLayout = new LinearLayout.LayoutParams(500, 100);
-        TextView nameTextView = new TextView(this);
-        TextView mailTextView = new TextView(this);
-        warnTextView = new TextView(this);
-
-        nameEditText = new EditText(this);
-        mailEditText = new EditText(this);
-        InputFilter[] mFilter = {
-                new InputFilter.LengthFilter(20),
-                new myFilter()
-        };
-        mailEditText.setOnEditorActionListener(this);
-
-        nameTextView.setText("名前");
-        mailTextView.setText("メールアドレス");
-        alertDialog.setMessage("名前とメールアドレスを入力してください");
-        warnTextView.setTextColor(Color.RED);
-        mailEditText.setFilters(mFilter);
-
-        dialogLayout.setOrientation(LinearLayout.VERTICAL);
-        dialogLayout.addView(nameTextView, templateLayout);
-        dialogLayout.addView(nameEditText, templateLayout);
-        dialogLayout.addView(mailTextView, templateLayout);
-        dialogLayout.addView(mailEditText, templateLayout);
-        dialogLayout.addView(warnTextView, templateLayout);
-        alertDialog.setView(dialogLayout);
-        alertDialog.setButton(DialogInterface.BUTTON_POSITIVE, "OK", this);
-        alertDialog.setButton(DialogInterface.BUTTON_NEGATIVE, "Cancell", this);
-        return alertDialog;
-    }
-
     private void FragmentInit(String uName) {
         FragmentManager fragmentManager = getFragmentManager();
         FragmentTransaction fragmentTransaction = fragmentManager.beginTransaction();
@@ -177,22 +132,6 @@ public class MainActivity extends Activity implements OnClickListener, OnEditorA
         }
     }
 
-    @Override
-    public void onClick(DialogInterface dialog, int which) {
-        if (which == DialogInterface.BUTTON_NEGATIVE) {
-            dialog.dismiss();
-        }
-        if (which == DialogInterface.BUTTON_POSITIVE) {
-            String nameString = nameEditText.getText().toString();
-            String mailString = mailEditText.getText().toString();
-            /** 入力されたテキストがメールアドレスかチェックする */
-            if (isMailAddress(mailString)) {
-                mDbManager.insert(uID, nameString, mailString);
-                FragmentInit(nameString);
-            }
-        }
-    }
-
     public int updatePrice(String column, int value, String UID) {
         return mDbManager.updatePrice(column, value, UID);
     }
@@ -206,30 +145,8 @@ public class MainActivity extends Activity implements OnClickListener, OnEditorA
     }
 
     @Override
-    public boolean onEditorAction(TextView v, int actionId, KeyEvent event) {
-        String mailAddress;
-        String name;
-        if (event != null && event.getKeyCode() == KeyEvent.KEYCODE_ENTER) {
-            mailAddress = mailEditText.getText().toString();
-            name = nameEditText.getText().toString();
-            if (name.equals("")) {
-                mAlertDialog.getButton(DialogInterface.BUTTON_POSITIVE).setEnabled(false);
-                warnTextView.setText("名前を入力してください");
-                return false;
-            } else if (mailAddress.equals("")) {
-                warnTextView.setText("正しくメールアドレスを入力してください");
-                mAlertDialog.getButton(DialogInterface.BUTTON_POSITIVE).setEnabled(false);
-                return false;
-            } else {
-                mAlertDialog.getButton(DialogInterface.BUTTON_POSITIVE).setEnabled(true);
-            }
-        }
-        return false;
+    public void OnClickDialogButton(String nameString, String mailString) {
+        mDbManager.insert(uID, nameString, mailString);
+        FragmentInit(nameString);
     }
-
-    /** テキストがメールアドレスかを正規表現でチェックする */
-    public boolean isMailAddress(String address) {
-        return address.matches(mailFilter) ? true : false;
-    }
-
 }
