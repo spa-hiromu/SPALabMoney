@@ -76,11 +76,9 @@ public class DBManager {
         values.put(UID_COLUMN, uID);
         values.put(countColumn, count);
         values.put(priceColumn, price);
-
-        return mydb.update(PRICE_TABLE, values, UID_COLUMN + "=?" + countColumn + "=?"
-                + priceColumn + "=?",
+        return mydb.update(PRICE_TABLE, values, UID_COLUMN + "=?",
                 new String[] {
-                        uID, countColumn, priceColumn
+                    uID
                 });
     }
 
