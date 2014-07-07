@@ -1,7 +1,7 @@
 /**全てのFragmentの基礎となるクラス
  * @author hiromu
  * */
-package net.jp.keys.sunohara.labmoney;
+package net.jp.keys.sunohara.labmoney.Fragments;
 
 import android.app.Fragment;
 

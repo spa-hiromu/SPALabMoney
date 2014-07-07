@@ -7,6 +7,7 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteException;
 import android.database.sqlite.SQLiteOpenHelper;
 import android.util.Log;
 import android.widget.SimpleCursorAdapter;
@@ -15,8 +16,6 @@ public class DBManager {
 
     static final String DB = "labMoney.db";
     public static final String USER_TABLE = "user";
-    public static final String NUDLE_TABLE = "nudle";
-    public static final String DRINK_TABLE = "drink";
     public static final String PRICE_TABLE = "price";
 
     public static final String DATE_COLUMN = "date";
@@ -43,7 +42,6 @@ public class DBManager {
         mContext = context;
         DBOpenHelper helper = new DBOpenHelper(mContext);
         mydb = helper.getWritableDatabase();
-        Log.d("dbmanager", "dbmanager");
     }
 
     /** 行の挿入 */
@@ -54,25 +52,16 @@ public class DBManager {
         values.put(MAIL_COlUMN, mail);
         mydb.insert(USER_TABLE, null, values);
     }
-   
-    public void insertPrice(int uID, int price, int count, int item) {
+
+    public void insertPrice(String uID) {
+        Log.d("uID", uID);
         ContentValues values = new ContentValues();
         values.put(UID_COLUMN, uID);
         values.put(DATE_COLUMN, new Date().getTime());
-        switch (item) {
-            case ITEM_DRINK:
-                values.put(NUDLE_PRICE_COLUMN, 0);
-                values.put(NUDLE_COUNT_COLUMN, 0);
-                values.put(DRINK_PRICE_COLUMN, price);
-                values.put(DRINK_COUNT_COLUMN, count);
-                break;
-            case ITEM_NUDLE:
-                values.put(NUDLE_PRICE_COLUMN, 0);
-                values.put(NUDLE_COUNT_COLUMN, 0);
-                values.put(DRINK_PRICE_COLUMN, price);
-                values.put(DRINK_COUNT_COLUMN, count);
-                break;
-        }
+        values.put(NUDLE_PRICE_COLUMN, 0);
+        values.put(NUDLE_COUNT_COLUMN, 0);
+        values.put(DRINK_PRICE_COLUMN, 0);
+        values.put(DRINK_COUNT_COLUMN, 0);
         mydb.insert(PRICE_TABLE, null, values);
     }
 
@@ -81,17 +70,29 @@ public class DBManager {
      * 
      * @return
      */
-    public int updatePrice(String column, int value, String uID) {
+    public int updatePrice(String priceColumn, int price, String countColumn, int count, String uID) {
         ContentValues values = new ContentValues();
-        values.put(column, value);
-        return mydb.update(PRICE_TABLE, values, UID_COLUMN + "=?",
+
+        values.put(UID_COLUMN, uID);
+        values.put(countColumn, count);
+        values.put(priceColumn, price);
+
+        return mydb.update(PRICE_TABLE, values, UID_COLUMN + "=?" + countColumn + "=?"
+                + priceColumn + "=?",
                 new String[] {
-                    uID
+                        uID, countColumn, priceColumn
                 });
     }
+
     /** 行の検索 */
     public Cursor mySearch(String tableName, String[] columns) {
-        return mydb.query(tableName, columns, null, null, null, null, null);
+        try {
+            return mydb.query(tableName, columns, null, null, null, null, null);
+        } catch (SQLiteException e) {
+            Log.d("SQLiteException", "SQLiteException");
+            e.printStackTrace();
+            return null;
+        }
     }
 
     private static class DBOpenHelper extends SQLiteOpenHelper {
@@ -121,12 +122,12 @@ public class DBManager {
 
         public void createPriceTable(SQLiteDatabase db) {
             db.execSQL("CREATE TABLE " + PRICE_TABLE + "(id INTEGER PRIMARY KEY AUTOINCREMENT, "
-                    + UID_COLUMN + "TEXT NOT NULL, "
-                    + DATE_COLUMN + "INTEGER NOT NULL, "
-                    + NUDLE_PRICE_COLUMN + "INTEGER NOT NULL, "
-                    + NUDLE_COUNT_COLUMN + "INTEGER NOT NULL, "
-                    + DRINK_PRICE_COLUMN + "INTEGER NOT NULL, "
-                    + DRINK_COUNT_COLUMN + "INTEGER NOT NULL);");
+                    + UID_COLUMN + " TEXT NOT NULL, "
+                    + DATE_COLUMN + " INTEGER NOT NULL, "
+                    + NUDLE_PRICE_COLUMN + " INTEGER NOT NULL, "
+                    + NUDLE_COUNT_COLUMN + " INTEGER NOT NULL, "
+                    + DRINK_PRICE_COLUMN + " INTEGER NOT NULL, "
+                    + DRINK_COUNT_COLUMN + " INTEGER NOT NULL);");
         }
     }
 }

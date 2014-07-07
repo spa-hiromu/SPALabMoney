@@ -22,17 +22,14 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
-import android.widget.RelativeLayout;
 
 public class MainActivity extends Activity implements OnClickDialogButtonListener {
     private String uID;
-    private String DBuID;
     private String mUserName;
     private DBManager mDbManager;
     private Timer mTimer;
     private SendMailTimerTask sendMailTimerTask;
     private myDialog mDialog;
-
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -41,6 +38,7 @@ public class MainActivity extends Activity implements OnClickDialogButtonListene
 
         mDbManager = new DBManager(getApplicationContext());
         mDialog = new myDialog(this);
+        mDialog.setOnClickDialogButtonListener(this);
 
         /** NFCの読み込み部分 */
         NFCInit();
@@ -92,6 +90,7 @@ public class MainActivity extends Activity implements OnClickDialogButtonListene
 
     /** IDがDBに登録されているかチェックする */
     private String checkID() {
+        String DBuID = "";
         String userName = "";
         /** 登録済みかを確認する */
         Cursor cursor = mDbManager.mySearch(DBManager.USER_TABLE, new String[] {
@@ -101,7 +100,7 @@ public class MainActivity extends Activity implements OnClickDialogButtonListene
         while (cursor.moveToNext()) {
             DBuID = cursor.getString(0);
             Log.d("DBuID", DBuID);
-            if (DBuID.equals(uID)) {
+            if (uID.equals(DBuID)) {
                 userName = cursor.getString(1);
                 Log.d("mUserName", userName);
             }
@@ -116,6 +115,7 @@ public class MainActivity extends Activity implements OnClickDialogButtonListene
         SelectFragment selectFragment = new SelectFragment();
         Bundle bundle = new Bundle();
         selectFragment.setArguments(bundle);
+        bundle.putString("UID", uID);
         bundle.putString("USER_NAME", uName);
         fragmentTransaction.replace(android.R.id.content, selectFragment);
         fragmentTransaction.commit();
@@ -132,21 +132,35 @@ public class MainActivity extends Activity implements OnClickDialogButtonListene
         }
     }
 
-    public int updatePrice(String column, int value, String UID) {
-        return mDbManager.updatePrice(column, value, UID);
+    /** priceテーブルの値を更新する */
+    public int updatePrice(String priceColumn, int price, String countColumn, int count, String UID) {
+        return mDbManager.updatePrice(priceColumn, price, countColumn, count, UID);
     }
 
     @Override
-    public void onWindowFocusChanged(boolean hasFocus) {
-        super.onWindowFocusChanged(hasFocus);
-        RelativeLayout rl = (RelativeLayout) findViewById(R.id.main);
-        Log.d("Window_width", String.valueOf(rl.getWidth()));
-        Log.d("Window_height", String.valueOf(rl.getHeight()));
+    public void OnClickDialogButton() {
+        mDbManager.insert(uID, mDialog.getUserName(), mDialog.getMailAddress());
+        FragmentInit(mDialog.getUserName());
     }
 
-    @Override
-    public void OnClickDialogButton(String nameString, String mailString) {
-        mDbManager.insert(uID, nameString, mailString);
-        FragmentInit(nameString);
+    public int getPriceTableValue(String UID, String column) {
+        int value = -1;
+        Cursor cursor = mDbManager.mySearch(DBManager.PRICE_TABLE, new String[] {
+                DBManager.UID_COLUMN, column
+        });
+
+        if (cursor == null) {
+            mDbManager.insertPrice(UID);
+            return getPriceTableValue(UID, column);
+        }
+        cursor.moveToFirst();
+        while (!cursor.isAfterLast()) {
+            if (cursor.getString(0).equals(UID)) {
+                value = cursor.getInt(1);
+                break;
+            }
+            cursor.moveToNext();
+        }
+        return value;
     }
 }

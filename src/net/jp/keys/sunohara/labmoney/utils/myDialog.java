@@ -102,12 +102,19 @@ public class myDialog implements OnEditorActionListener, OnClickListener {
             String mailString = mailEditText.getText().toString();
             /** 入力されたテキストがメールアドレスかチェックする */
             if (isMailAddress(mailString)) {
-                mListener.OnClickDialogButton(nameString, mailString);
+                mListener.OnClickDialogButton();
             }
         }
 
     }
 
+    public String getUserName() {
+        return nameEditText.getText().toString();
+    }
+
+    public String getMailAddress() {
+        return mailEditText.getText().toString();
+    }
     /** テキストがメールアドレスかを正規表現でチェックする */
     public boolean isMailAddress(String address) {
         return address.matches(mailFilter) ? true : false;
@@ -121,7 +128,7 @@ public class myDialog implements OnEditorActionListener, OnClickListener {
      * ダイアログのポジティブボタンが押された事を通知するinterface HACK:インターフェイス名が適切でないので後で変える
      */
     public interface OnClickDialogButtonListener extends EventListener {
-        public void OnClickDialogButton(String name, String mail);
+        public void OnClickDialogButton();
     }
 
 }
